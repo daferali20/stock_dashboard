@@ -222,10 +222,22 @@ with tab4:
             st.error(f"❌ حدث خطأ جسيم: {str(e)}")
             logger.error(f"Critical error in prediction tab: {str(e)}", exc_info=True)
 
-            st.subheader("🧠 تقييمات المحللين")
-            recs = get_analyst_recommendations(ticker)
-            if not recs.empty:
-                st.dataframe(recs)
+             st.subheader("🧠 تقييمات المحللين")
+             try:
+                recs = get_analyst_recommendations(ticker)
+                if recs is not None and not recs.empty:
+                # تنسيق الجدول
+                    st.dataframe(
+                        recs.style
+                    .highlight_max(subset=['to grade'], color='lightgreen')
+                    .set_properties(**{'text-align': 'right'})
+                    .format({'to grade': '{:.1f}'})
+                )
+              else:
+                  st.warning("لا توجد توصيات محللين متاحة حالياً")
+        except Exception as e:
+            st.error(f"لا يمكن جلب التوصيات: {str(e)}")
+            logger.error(f"Recommendations error for {ticker}: {str(e)}")
 
 with tab5:
     st.subheader("📰 أخبار السوق العامة")
