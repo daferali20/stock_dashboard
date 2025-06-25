@@ -2,19 +2,30 @@ import yfinance as yf
 import pandas as pd
 from typing import Optional
 
-def get_analyst_recommendations(ticker: str) -> Optional[pd.DataFrame]:
-    """
-    جلب توصيات المحللين لسهم معين
+def get_analyst_recommendations(ticker: str) -> pd.DataFrame:
+    """جلب توصيات المحللين من Alpha Vantage"""
+    params = {
+        "function": "OVERVIEW",
+        "symbol": ticker,
+        "apikey": ALPHA_VANTAGE_API_KEY
+    }
     
-    :param ticker: رمز السهم
-    :return: DataFrame يحتوي على التوصيات أو None إذا فشل
-    """
     try:
-        stock = yf.Ticker(ticker)
-        rec = stock.recommendations
+        response = requests.get(BASE_URL, params=params)
+        data = response.json()
         
-        if rec is None or rec.empty:
-            return None
+        if "AnalystTargetPrice" in data:
+            return pd.DataFrame({
+                "Target Price": [data["AnalystTargetPrice"]],
+                "Rating": [data["AnalystRating"]],
+                "Firm": [data["AnalystFirm"]]
+            })
+            
+        return pd.DataFrame()
+        
+    except Exception as e:
+        print(f"Error getting recommendations: {str(e)}")
+        return pd.DataFrame()
             
         # توحيد أسماء الأعمدة
         rec.columns = rec.columns.str.lower()
