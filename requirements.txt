@@ -6,4 +6,4 @@ plotly
 scikit-learn
 newsapi-python
 python-dotenv
-TA-Lib
+TA-Lib==0.4.24
