@@ -1,20 +1,33 @@
 import yfinance as yf
 import pandas as pd
-import streamlit as st
+from typing import Optional
 
-@st.cache_data(ttl=3600)
-def get_analyst_recommendations(ticker_symbol: str) -> pd.DataFrame:
+def get_analyst_recommendations(ticker: str) -> Optional[pd.DataFrame]:
+    """
+    جلب توصيات المحللين لسهم معين
+    
+    :param ticker: رمز السهم
+    :return: DataFrame يحتوي على التوصيات أو None إذا فشل
+    """
     try:
-        ticker = yf.Ticker(ticker_symbol)
-        recs = ticker.recommendations
-
-        if recs is not None and not recs.empty:
-            recent_recs = recs.tail(20)[['Firm', 'To Grade', 'From Grade', 'Action']]
-            recent_recs.index = recent_recs.index.strftime('%Y-%m-%d')
-            return recent_recs[::-1]  # ترتيب تنازلي حسب التاريخ
-        else:
-            return pd.DataFrame()
+        stock = yf.Ticker(ticker)
+        rec = stock.recommendations
+        
+        if rec is None or rec.empty:
+            return None
+            
+        # توحيد أسماء الأعمدة
+        rec.columns = rec.columns.str.lower()
+        
+        # اختيار الأعمدة المطلوبة
+        required_cols = ['firm', 'to grade', 'action']
+        available_cols = [col for col in required_cols if col in rec.columns]
+        
+        if not available_cols:
+            return None
+            
+        return rec[available_cols].sort_values(by='to grade', ascending=False)
+        
     except Exception as e:
-        st.warning(f"لا يمكن جلب تقييمات المحللين لـ {ticker_symbol}: {str(e)}")
-        return pd.DataFrame()
-
+        print(f"Error getting recommendations for {ticker}: {str(e)}")
+        return None
