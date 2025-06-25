@@ -1,3 +1,8 @@
+import streamlit as st
+from datetime import datetime, timedelta
+import logging
+import pandas as pd
+import plotly.graph_objects as go
 import yfinance as yf
 import sys
 import os
@@ -15,19 +20,22 @@ from components.watchlist import load_watchlist_from_text, load_watchlist_from_f
 from components.performance import compare_with_index
 from components.analysts import get_analyst_recommendations
 
-# الدوال المساعدة مع التخزين المؤقت
-@st.cache_data
+# تحديد دالة التخزين المؤقت حسب الإصدار
+if st.__version__ >= "1.18.0":
+    cache_decorator = st.cache_data
+else:
+    cache_decorator = st.cache(allow_output_mutation=True, suppress_st_warning=True)
+
+@cache_decorator(ttl=3600)
 def load_index_data(symbol, start, end):
-    """جلب بيانات المؤشر مع التخزين المؤقت"""
+    """جلب بيانات المؤشر مع التخزين المؤقت لمدة ساعة"""
     return yf.download(symbol, start=start, end=end, progress=False)
 
-@st.cache_data
+@cache_decorator(ttl=3600)
 def load_stock_data(ticker, start, end):
-    """جلب بيانات السهم مع التخزين المؤقت"""
+    """جلب بيانات السهم مع التخزين المؤقت لمدة ساعة"""
     return yf.download(ticker, start=start, end=end, auto_adjust=True, progress=False)
-@st.cache_data(ttl=3600)  # تخزين لمدة ساعة
-def load_index_data(symbol, start, end):
-    return yf.download(symbol, start=start, end=end, progress=False)
+
 # إعداد الصفحة
 st.set_page_config(page_title="📊 لوحة تحليل الأسهم الأمريكية", layout="wide")
 st.title("📊 نظام تحليل الأسهم الأمريكي المتكامل")
@@ -63,10 +71,9 @@ with tab1:
     
     for name, symbol in indices.items():
         try:
-            df = load_index_data(symbol, start_date, end_date)  # استخدام الدالة المخبأة
+            df = load_index_data(symbol, start_date, end_date)
             
             if not df.empty and 'Close' in df.columns:
-                # التحويل الصحيح للسلسلة الرقمية
                 close_series = df['Close'].copy()
                 
                 if not close_series.empty:
@@ -136,7 +143,7 @@ with tab4:
     
     if ticker:
         try:
-            data = load_stock_data(ticker, start_date, end_date)  # استخدام الدالة المخبأة
+            data = load_stock_data(ticker, start_date, end_date)
             
             if not data.empty:
                 data.columns = data.columns.str.lower()
@@ -181,13 +188,14 @@ with tab4:
                 # المقارنة مع S&P 500
                 st.subheader("📊 مقارنة مع مؤشر السوق")
                 try:
-                    sp500 = yf.download("^GSPC", start=start_date, end=end_date, auto_adjust=True)
-                    if not sp500.empty:
-                        sp500.columns = sp500.columns.str.lower()
+                    sp500 = load_index_data("^GSPC", start_date, end_date)
+                    if not sp500.empty and 'Close' in sp500.columns:
+                        sp500_close = sp500['Close'].copy()
+                        data_close = data['close'].copy()
                         
                         # تطبيع البيانات للمقارنة
-                        norm_data = (data['close'] / data['close'].iloc[0] * 100)
-                        norm_sp500 = (sp500['close'] / sp500['close'].iloc[0] * 100)
+                        norm_data = (data_close / data_close.iloc[0] * 100)
+                        norm_sp500 = (sp500_close / sp500_close.iloc[0] * 100)
                         
                         fig = go.Figure()
                         fig.add_trace(go.Scatter(
