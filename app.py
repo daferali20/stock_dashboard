@@ -83,36 +83,29 @@ with tab4:
     
     if ticker:
         try:
-            # جلب البيانات
             data = yf.download(ticker, start=start_date, end=end_date)
             
             if not data.empty:
-                # عرض مؤشر التحميل
                 with st.spinner('جاري تحليل البيانات...'):
-                    # التحقق من وجود TA-Lib
                     try:
-                        from utils.indicators import TechnicalIndicators
-                        ti = TechnicalIndicators(data)
-                        data = ti.calculate_all_indicators()
-                    except ImportError:
-                        st.warning("""
-                        ⚠️ لم يتم تثبيت TA-Lib. بعض المؤشرات لن تعمل.
-                        راجع دليل التثبيت في README.md
-                        """)
-                        data['SMA_20'] = data['close'].rolling(20).mean()
-                        data['RSI'] = 0  # قيم افتراضية
-
-                    # التنبؤ (بديل إذا لم يكن scikit-learn مثبتاً)
-                    try:
-                        from utils.prediction import predict_stock
-                        prediction = predict_stock(data)
-                        st.success(f"التنبؤ لليوم التالي: {prediction['direction']} ({prediction['confidence']:.1%} ثقة)")
-                        st.metric("السعر المتوقع", f"{prediction['price']:.2f}")
-                    except ImportError:
-                        st.error("""
-                        ❌ لم يتم تثبيت متطلبات التعلم الآلي.
-                        قم بتثبيت scikit-learn للتنبؤات.
-                        """)
+                        features, target = prepare_data_for_prediction(data)
+                        model, mse = train_prediction_model(features, target)
+                        
+                        if model:
+                            st.success(f"تم تدريب النموذج (MSE = {mse:.4f})")
+                            last_data = data.iloc[-1]
+                            pred_price = predict_next_day(model, last_data)
+                            current_price = last_data['close']
+                            change = ((pred_price - current_price) / current_price) * 100
+                            
+                            st.metric("السعر الحالي", f"{current_price:.2f}")
+                            st.metric("السعر المتوقع", f"{pred_price:.2f}", 
+                                     delta=f"{change:.2f}%")
+                            
+                    except Exception as e:
+                        st.error(f"❌ خطأ في التنبؤ: {str(e)}")
+                        
+                # باقي الكود الخاص بالمقارنة وتقييمات المحللين...
 
                 # المقارنة مع S&P 500
                 st.subheader("📊 مقارنة مع S&P 500")
