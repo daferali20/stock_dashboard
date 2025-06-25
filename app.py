@@ -41,36 +41,30 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
 
 with tab1:
     st.subheader("📊 أداء مؤشرات السوق")
-    # في app.py عند جلب بيانات المؤشرات:
     indices = {
-        "S&P 500": "SPX",
-        "Dow Jones": "DJI",
-        "Nasdaq": "IXIC"
-}
-
-for name, symbol in indices.items():
-    data = get_stock_data(symbol)
-    if not data.empty:
-        close_series = data['close']
+        "S&P 500": "^GSPC",
+        "Dow Jones": "^DJI",
+        "Nasdaq": "^IXIC"
+    }
     
     for name, symbol in indices.items():
         try:
-            # جلب البيانات مع التحقق من الصحة
+            # استخدام yfinance بدلاً من Alpha Vantage للتوحيد
             df = yf.download(symbol, start=start_date, end=end_date, progress=False)
             
             if not df.empty and 'Close' in df.columns:
-                # التحقق من أن القيمة رقمية
                 close_series = pd.to_numeric(df['Close'], errors='coerce').dropna()
                 
                 if not close_series.empty:
                     latest_value = close_series.iloc[-1]
                     
-                    # حساب النسبة المئوية للتغير إذا كانت هناك بيانات كافية
+                    # حساب التغير المئوي
                     delta_pct = ""
                     if len(close_series) > 1:
-                        delta_pct = f"{((close_series.iloc[-1] - close_series.iloc[-2]) / close_series.iloc[-2] * 100):.2f}%"
+                        change = ((close_series.iloc[-1] - close_series.iloc[-2]) / close_series.iloc[-2] * 100
+                        delta_pct = f"{change:.2f}%"
                     
-                    # عرض المؤشر
+                    # العرض
                     col1, col2 = st.columns([1, 3])
                     with col1:
                         st.metric(
