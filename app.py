@@ -83,56 +83,111 @@ with tab4:
     
     if ticker:
         try:
-            data = yf.download(ticker, start=start_date, end=end_date)
+            # جلب البيانات مع معالجة التحذير
+            data = yf.download(ticker, start=start_date, end=end_date, auto_adjust=True)
             
             if not data.empty:
+                # توحيد أسماء الأعمدة (تحويل لأحرف صغيرة)
+                data.columns = [col.lower() for col in data.columns]
+                
+                # عرض مؤشر التحميل
                 with st.spinner('جاري تحليل البيانات...'):
                     try:
+                        # التحقق من وجود مكتبة TA-Lib
+                        try:
+                            from utils.indicators import TechnicalIndicators
+                            ti = TechnicalIndicators(data)
+                            data = ti.calculate_all_indicators()
+                        except ImportError:
+                            st.warning("""
+                            ⚠️ لم يتم تثبيت TA-Lib. سيتم استخدام مؤشرات مبسطة.
+                            راجع دليل التثبيت في README.md
+                            """)
+                            # حساب مؤشرات بديلة
+                            data['sma_20'] = data['close'].rolling(20).mean()
+                            delta = data['close'].diff()
+                            gain = (delta.where(delta > 0, 0)).rolling(14).mean()
+                            loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
+                            rs = gain / loss
+                            data['rsi'] = 100 - (100 / (1 + rs))
+
+                        # التنبؤ
                         features, target = prepare_data_for_prediction(data)
                         model, mse = train_prediction_model(features, target)
                         
                         if model:
-                            st.success(f"تم تدريب النموذج (MSE = {mse:.4f})")
+                            st.success(f"تم تدريب النموذج (دقة التنبؤ: {mse:.4f})")
                             last_data = data.iloc[-1]
                             pred_price = predict_next_day(model, last_data)
                             current_price = last_data['close']
-                            change = ((pred_price - current_price) / current_price) * 100
+                            change_pct = ((pred_price - current_price) / current_price) * 100
                             
-                            st.metric("السعر الحالي", f"{current_price:.2f}")
-                            st.metric("السعر المتوقع", f"{pred_price:.2f}", 
-                                     delta=f"{change:.2f}%")
+                            col1, col2 = st.columns(2)
+                            col1.metric("السعر الحالي", f"{current_price:.2f}")
+                            col2.metric("التنبؤ للغد", f"{pred_price:.2f}", 
+                                      delta=f"{change_pct:.2f}%",
+                                      delta_color="inverse" if change_pct < 0 else "normal")
                             
+                            # عرض تفسير النتائج
+                            st.info("""
+                            **تفسير النتائج:**
+                            - إذا كانت النسبة موجبة: تشير إلى صعود متوقع في السعر
+                            - إذا كانت النسبة سالبة: تشير إلى هبوط متوقع في السعر
+                            """)
+
                     except Exception as e:
-                        st.error(f"❌ خطأ في التنبؤ: {str(e)}")
-                        
-                # باقي الكود الخاص بالمقارنة وتقييمات المحللين...
+                        st.error(f"❌ خطأ في تحليل البيانات: {str(e)}")
+                        logger.error(f"Analysis error: {str(e)}")
 
                 # المقارنة مع S&P 500
-                st.subheader("📊 مقارنة مع S&P 500")
+                st.subheader("📊 مقارنة مع مؤشر السوق")
                 try:
-                    from utils.performance import compare_with_index
-                    perf_df = compare_with_index(ticker, "^GSPC", start_date, end_date)
-                    
-                    if not perf_df.empty:
+                    sp500 = yf.download("^GSPC", start=start_date, end=end_date, auto_adjust=True)
+                    if not sp500.empty:
+                        sp500.columns = [col.lower() for col in sp500.columns]
+                        
+                        # تطبيع البيانات للمقارنة
+                        norm_data = (data['close'] / data['close'].iloc[0] * 100)
+                        norm_sp500 = (sp500['close'] / sp500['close'].iloc[0] * 100)
+                        
                         fig = go.Figure()
-                        for col in perf_df.columns:
-                            fig.add_trace(go.Scatter(
-                                x=perf_df.index, 
-                                y=perf_df[col], 
-                                name=col,
-                                line=dict(width=2)
-                            ))
+                        fig.add_trace(go.Scatter(
+                            x=norm_data.index,
+                            y=norm_data,
+                            name=ticker,
+                            line=dict(color='royalblue', width=2)
+                        ))
+                        fig.add_trace(go.Scatter(
+                            x=norm_sp500.index,
+                            y=norm_sp500,
+                            name="S&P 500",
+                            line=dict(color='gray', width=2)
+                        ))
                         fig.update_layout(
-                            hovermode="x unified",
-                            legend=dict(orientation="h", y=1.1)
+                            title="أداء السهم مقارنة بمؤشر S&P 500",
+                            yaxis_title="النسبة المئوية للتغير",
+                            hovermode="x unified"
                         )
                         st.plotly_chart(fig, use_container_width=True)
+                        
                 except Exception as e:
                     st.warning(f"⚠️ لا يمكن عرض المقارنة: {str(e)}")
+
+                # تقييمات المحللين
+                st.subheader("🧠 توصيات المحللين")
+                try:
+                    from components.analysts import get_analyst_recommendations
+                    recs = get_analyst_recommendations(ticker)
+                    if not recs.empty:
+                        st.dataframe(recs.style.highlight_max(axis=0, color='lightgreen'))
+                    else:
+                        st.warning("لا توجد توصيات متاحة لهذا السهم")
+                except Exception as e:
+                    st.warning(f"⚠️ لا يمكن عرض التوصيات: {str(e)}")
                     
         except Exception as e:
-            st.error(f"❌ حدث خطأ: {str(e)}")
-            logger.error(f"Error in prediction tab: {str(e)}", exc_info=True)
+            st.error(f"❌ حدث خطأ جسيم: {str(e)}")
+            logger.error(f"Critical error in prediction tab: {str(e)}", exc_info=True)
 
             st.subheader("🧠 تقييمات المحللين")
             recs = get_analyst_recommendations(ticker)
