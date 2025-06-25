@@ -33,9 +33,12 @@ with tab1:
     st.subheader("📊 أداء مؤشرات السوق")
     indices_data = get_all_indices_data(start_date, end_date)
     for name, df in indices_data.items():
-        if not df.empty:
-            st.metric(name, value=f"{df['Close'].iloc[-1]:,.2f}")
-            st.line_chart(df['Close'])
+        if not df.empty and 'Close' in df.columns and not df['Close'].dropna().empty:
+    latest_value = df['Close'].dropna().iloc[-1]
+    st.metric(name, value=f"{latest_value:,.2f}")
+    st.line_chart(df['Close'])
+else:
+    st.warning(f"لا توجد بيانات متاحة لـ {name}")
 
 with tab2:
     st.subheader("📈 الأعلى ارتفاعًا")
