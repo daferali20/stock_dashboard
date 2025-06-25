@@ -1,7 +1,16 @@
 import streamlit as st
 from datetime import datetime, timedelta
 import logging
-# مكونات المشروع
+import pandas as pd
+import plotly.graph_objects as go
+import yfinance as yf
+import sys
+import os
+
+# إعداد مسارات النظام
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# استيراد المكونات
 from components.indices import get_all_indices_data
 from components.news import get_financial_news
 from components.stock_news import get_stock_news
@@ -10,17 +19,11 @@ from components.prediction import prepare_data_for_prediction, train_prediction_
 from components.watchlist import load_watchlist_from_text, load_watchlist_from_file, fetch_watchlist_data
 from components.performance import compare_with_index
 from components.analysts import get_analyst_recommendations
-#from utils.alpha_vantage_helper import get_stock_data
-#data = get_stock_data(ticker)
-import plotly.graph_objects as go
-import yfinance as yf
-import pandas as pd
-import sys
-import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# إعداد الصفحة
 st.set_page_config(page_title="📊 لوحة تحليل الأسهم الأمريكية", layout="wide")
 st.title("📊 نظام تحليل الأسهم الأمريكي المتكامل")
+
 # إعداد نظام التسجيل
 logging.basicConfig(
     level=logging.INFO,
@@ -31,14 +34,17 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger(__name__)
+
 # إعدادات عامة
 start_date = st.sidebar.date_input("📅 تاريخ البداية", datetime.now() - timedelta(days=180))
 end_date = st.sidebar.date_input("📅 تاريخ النهاية", datetime.now())
 
+# تعريف تبويبات التطبيق
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "🏠 مؤشرات السوق", "📈 الأسهم المؤثرة", "📋 قائمة المتابعة", "🔮 التنبؤ", "📰 الأخبار"
 ])
 
+# تبويب مؤشرات السوق
 with tab1:
     st.subheader("📊 أداء مؤشرات السوق")
     indices = {
@@ -49,7 +55,6 @@ with tab1:
     
     for name, symbol in indices.items():
         try:
-            # استخدام yfinance بدلاً من Alpha Vantage للتوحيد
             df = yf.download(symbol, start=start_date, end=end_date, progress=False)
             
             if not df.empty and 'Close' in df.columns:
@@ -64,7 +69,7 @@ with tab1:
                         change = ((close_series.iloc[-1] - close_series.iloc[-2]) / close_series.iloc[-2]) * 100
                         delta_pct = f"{change:.2f}%"
                     
-                    # العرض
+                    # عرض البيانات
                     col1, col2 = st.columns([1, 3])
                     with col1:
                         st.metric(
@@ -83,14 +88,18 @@ with tab1:
             st.error(f"خطأ في جلب بيانات {name}: {str(e)}")
             logger.error(f"Error fetching {name} data: {str(e)}", exc_info=True)
 
+# تبويب الأسهم المؤثرة
 with tab2:
     st.subheader("📈 الأعلى ارتفاعًا")
     st.dataframe(get_top_gainers())
+    
     st.subheader("📉 الأعلى هبوطًا")
     st.dataframe(get_top_losers())
+    
     st.subheader("🔥 الأكثر تداولًا")
     st.dataframe(get_most_active())
 
+# تبويب قائمة المتابعة
 with tab3:
     st.subheader("📋 قائمة المتابعة")
     method = st.radio("طريقة الإدخال:", ["نص يدوي", "تحميل ملف CSV"])
@@ -111,6 +120,7 @@ with tab3:
             st.write(f"🔹 {symbol}")
             st.line_chart(df['Close'])
 
+# تبويب التنبؤ
 with tab4:
     st.subheader("🔮 التنبؤ بسهم")
     ticker = st.text_input("رمز السهم", "AAPL").upper()
@@ -123,18 +133,48 @@ with tab4:
                 data.columns = data.columns.str.lower()
                 
                 with st.spinner('جاري تحليل البيانات...'):
-                    # ... (بقية الكود كما هو)
-                    
-        except Exception as e:
-            st.error(f"❌ حدث خطأ: {str(e)}")
-            logger.error(f"Prediction error: {str(e)}", exc_info=True)
+                    try:
+                        # حساب المؤشرات الفنية
+                        data['sma_20'] = data['close'].rolling(20).mean()
+                        delta = data['close'].diff()
+                        gain = (delta.where(delta > 0, 0)).rolling(14).mean()
+                        loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
+                        rs = gain / loss
+                        data['rsi'] = 100 - (100 / (1 + rs))
+
+                        # التنبؤ
+                        features, target = prepare_data_for_prediction(data)
+                        model, mse = train_prediction_model(features, target)
+                        
+                        if model:
+                            st.success(f"تم تدريب النموذج (دقة التنبؤ: {mse:.4f})")
+                            last_data = data.iloc[-1]
+                            pred_price = predict_next_day(model, last_data)
+                            current_price = last_data['close']
+                            change_pct = ((pred_price - current_price) / current_price) * 100
+                            
+                            col1, col2 = st.columns(2)
+                            col1.metric("السعر الحالي", f"{current_price:.2f}")
+                            col2.metric("التنبؤ للغد", f"{pred_price:.2f}", 
+                                      delta=f"{change_pct:.2f}%",
+                                      delta_color="inverse" if change_pct < 0 else "normal")
+                            
+                            st.info("""
+                            **تفسير النتائج:**
+                            - إذا كانت النسبة موجبة: تشير إلى صعود متوقع في السعر
+                            - إذا كانت النسبة سالبة: تشير إلى هبوط متوقع في السعر
+                            """)
+
+                    except Exception as e:
+                        st.error(f"❌ خطأ في تحليل البيانات: {str(e)}")
+                        logger.error(f"Analysis error: {str(e)}")
 
                 # المقارنة مع S&P 500
                 st.subheader("📊 مقارنة مع مؤشر السوق")
                 try:
                     sp500 = yf.download("^GSPC", start=start_date, end=end_date, auto_adjust=True)
                     if not sp500.empty:
-                        sp500.columns = [col.lower() for col in sp500.columns]
+                        sp500.columns = sp500.columns.str.lower()
                         
                         # تطبيع البيانات للمقارنة
                         norm_data = (data['close'] / data['close'].iloc[0] * 100)
@@ -166,10 +206,14 @@ with tab4:
                 # تقييمات المحللين
                 st.subheader("🧠 توصيات المحللين")
                 try:
-                    from components.analysts import get_analyst_recommendations
                     recs = get_analyst_recommendations(ticker)
-                    if not recs.empty:
-                        st.dataframe(recs.style.highlight_max(axis=0, color='lightgreen'))
+                    if recs is not None and not recs.empty:
+                        st.dataframe(
+                            recs.style
+                            .highlight_max(subset=['to grade'], color='lightgreen')
+                            .set_properties(**{'text-align': 'right'})
+                            .format({'to grade': '{:.1f}'})
+                        )
                     else:
                         st.warning("لا توجد توصيات متاحة لهذا السهم")
                 except Exception as e:
@@ -178,35 +222,19 @@ with tab4:
         except Exception as e:
             st.error(f"❌ حدث خطأ جسيم: {str(e)}")
             logger.error(f"Critical error in prediction tab: {str(e)}", exc_info=True)
-    
-    st.subheader("🧠 تقييمات المحللين")
-    try:
-        recs = get_analyst_recommendations(ticker)
-        if recs is not None and not recs.empty:
-            # تنسيق الجدول
-            st.dataframe(
-                recs.style
-                .highlight_max(subset=['to grade'], color='lightgreen')
-                .set_properties(**{'text-align': 'right'})
-                .format({'to grade': '{:.1f}'})
-            )
-        else:
-            st.warning("لا توجد توصيات محللين متاحة حالياً")
-    except Exception as e:
-        st.error(f"لا يمكن جلب التوصيات: {str(e)}")
-        logger.error(f"Recommendations error for {ticker}: {str(e)}")
- 
+
+# تبويب الأخبار
 with tab5:
     st.subheader("📰 أخبار السوق العامة")
-news = get_financial_news()
-for article in news[:5]:
-    st.markdown(f"**{article['title']}**  \n{article['source']['name']} - {article['publishedAt'][:10]}")
-    st.write(article['description'])
+    news = get_financial_news()
+    for article in news[:5]:
+        st.markdown(f"**{article['title']}**  \n{article['source']['name']} - {article['publishedAt'][:10]}")
+        st.write(article['description'])
 
-st.subheader("📰 أخبار سهم معين")
-ticker_news = st.text_input("رمز السهم للأخبار", "MSFT").upper()
-stock_news = get_stock_news(ticker_news)
-for article in stock_news[:5]:
-    st.markdown(f"**{article['title']}**  \n{article['source']['name']} - {article['publishedAt'][:10]}")
-    st.write(article['description'])
-
+    st.subheader("📰 أخبار سهم معين")
+    ticker_news = st.text_input("رمز السهم للأخبار", "MSFT").upper()
+    if ticker_news:
+        stock_news = get_stock_news(ticker_news)
+        for article in stock_news[:5]:
+            st.markdown(f"**{article['title']}**  \n{article['source']['name']} - {article['publishedAt'][:10]}")
+            st.write(article['description'])
