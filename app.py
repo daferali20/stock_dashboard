@@ -58,14 +58,18 @@ with tab1:
                 if not close_series.empty:
                     latest_value = close_series.iloc[-1]
                     
+                    # حساب النسبة المئوية للتغير إذا كانت هناك بيانات كافية
+                    delta_pct = ""
+                    if len(close_series) > 1:
+                        delta_pct = f"{((close_series.iloc[-1] - close_series.iloc[-2]) / close_series.iloc[-2] * 100):.2f}%"
+                    
                     # عرض المؤشر
                     col1, col2 = st.columns([1, 3])
                     with col1:
                         st.metric(
                             label=name,
                             value=f"{latest_value:,.2f}",
-                            delta=f"{((close_series.iloc[-1] - close_series.iloc[-2]) / close_series.iloc[-2] * 100:.2f}%" 
-                            if len(close_series) > 1 else ""
+                            delta=delta_pct
                         )
                     with col2:
                         st.line_chart(close_series)
