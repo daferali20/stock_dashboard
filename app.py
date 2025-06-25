@@ -1,6 +1,6 @@
 import streamlit as st
 from datetime import datetime, timedelta
-
+import logging
 # مكونات المشروع
 from components.indices import get_all_indices_data
 from components.news import get_financial_news
@@ -20,7 +20,16 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 st.set_page_config(page_title="📊 لوحة تحليل الأسهم الأمريكية", layout="wide")
 st.title("📊 نظام تحليل الأسهم الأمريكي المتكامل")
-
+# إعداد نظام التسجيل
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler("app.log"),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
 # إعدادات عامة
 start_date = st.sidebar.date_input("📅 تاريخ البداية", datetime.now() - timedelta(days=180))
 end_date = st.sidebar.date_input("📅 تاريخ النهاية", datetime.now())
