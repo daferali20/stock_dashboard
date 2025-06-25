@@ -77,10 +77,10 @@ class TechnicalIndicators:
             'Lower': lower
         }, index=self.data.index)
     # بدائل إذا لم يكن TA-Lib مثبتاً
-    def calculate_rsi(self, period=14):
-        delta = self.close.diff()
-        gain = (delta.where(delta > 0, 0)).rolling(period).mean()
-        loss = (-delta.where(delta < 0, 0)).rolling(period).mean()
+    def calculate_rsi(data, window=14):
+        delta = data['close'].diff()
+        gain = (delta.where(delta > 0, 0)).rolling(window).mean()
+        loss = (-delta.where(delta < 0, 0)).rolling(window).mean()
         rs = gain / loss
         return 100 - (100 / (1 + rs))
         
