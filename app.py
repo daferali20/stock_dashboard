@@ -80,27 +80,66 @@ with tab3:
 with tab4:
     st.subheader("🔮 التنبؤ بسهم")
     ticker = st.text_input("رمز السهم", "AAPL").upper()
+    
     if ticker:
-        data = yf.download(ticker, start=start_date, end=end_date)
-        if not data.empty:
-            from utils.indicators import calculate_technical_indicators
-            data = calculate_technical_indicators(data)
+        try:
+            # جلب البيانات
+            data = yf.download(ticker, start=start_date, end=end_date)
+            
+            if not data.empty:
+                # عرض مؤشر التحميل
+                with st.spinner('جاري تحليل البيانات...'):
+                    # التحقق من وجود TA-Lib
+                    try:
+                        from utils.indicators import TechnicalIndicators
+                        ti = TechnicalIndicators(data)
+                        data = ti.calculate_all_indicators()
+                    except ImportError:
+                        st.warning("""
+                        ⚠️ لم يتم تثبيت TA-Lib. بعض المؤشرات لن تعمل.
+                        راجع دليل التثبيت في README.md
+                        """)
+                        data['SMA_20'] = data['close'].rolling(20).mean()
+                        data['RSI'] = 0  # قيم افتراضية
 
-            features, target = prepare_data_for_prediction(data)
-            model, mse = train_prediction_model(features, target)
+                    # التنبؤ (بديل إذا لم يكن scikit-learn مثبتاً)
+                    try:
+                        from utils.prediction import predict_stock
+                        prediction = predict_stock(data)
+                        st.success(f"التنبؤ لليوم التالي: {prediction['direction']} ({prediction['confidence']:.1%} ثقة)")
+                        st.metric("السعر المتوقع", f"{prediction['price']:.2f}")
+                    except ImportError:
+                        st.error("""
+                        ❌ لم يتم تثبيت متطلبات التعلم الآلي.
+                        قم بتثبيت scikit-learn للتنبؤات.
+                        """)
 
-            if model:
-                st.success(f"تم تدريب النموذج (MSE = {mse:.4f})")
-                pred = predict_next_day(model, data.iloc[-1])
-                st.metric("احتمال الصعود", f"{pred*100:.1f}%")
-
-            st.subheader("📊 مقارنة مع S&P 500")
-            perf_df = compare_with_index(ticker, "^GSPC", start_date, end_date)
-            if not perf_df.empty:
-                fig = go.Figure()
-                for col in perf_df.columns:
-                    fig.add_trace(go.Scatter(x=perf_df.index, y=perf_df[col], name=col))
-                st.plotly_chart(fig, use_container_width=True)
+                # المقارنة مع S&P 500
+                st.subheader("📊 مقارنة مع S&P 500")
+                try:
+                    from utils.performance import compare_with_index
+                    perf_df = compare_with_index(ticker, "^GSPC", start_date, end_date)
+                    
+                    if not perf_df.empty:
+                        fig = go.Figure()
+                        for col in perf_df.columns:
+                            fig.add_trace(go.Scatter(
+                                x=perf_df.index, 
+                                y=perf_df[col], 
+                                name=col,
+                                line=dict(width=2)
+                            ))
+                        fig.update_layout(
+                            hovermode="x unified",
+                            legend=dict(orientation="h", y=1.1)
+                        )
+                        st.plotly_chart(fig, use_container_width=True)
+                except Exception as e:
+                    st.warning(f"⚠️ لا يمكن عرض المقارنة: {str(e)}")
+                    
+        except Exception as e:
+            st.error(f"❌ حدث خطأ: {str(e)}")
+            logger.error(f"Error in prediction tab: {str(e)}", exc_info=True)
 
             st.subheader("🧠 تقييمات المحللين")
             recs = get_analyst_recommendations(ticker)
