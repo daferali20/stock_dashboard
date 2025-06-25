@@ -10,8 +10,8 @@ from components.prediction import prepare_data_for_prediction, train_prediction_
 from components.watchlist import load_watchlist_from_text, load_watchlist_from_file, fetch_watchlist_data
 from components.performance import compare_with_index
 from components.analysts import get_analyst_recommendations
-from utils.alpha_vantage_helper import get_stock_data
-data = get_stock_data(ticker)
+#from utils.alpha_vantage_helper import get_stock_data
+#data = get_stock_data(ticker)
 import plotly.graph_objects as go
 import yfinance as yf
 import pandas as pd
