@@ -96,10 +96,8 @@ with tab5:
     st.subheader("📰 أخبار السوق العامة")
     news = get_financial_news()
     for article in news[:5]:
-        st.markdown(f"**{article['title']}**  
-{article['source']['name']} - {article['publishedAt'][:10]}")
+        st.markdown(f"**{article['title']}**  \n{article['source']['name']} - {article['publishedAt'][:10]}")
         st.write(article['description'])
-
     st.subheader("📰 أخبار سهم معين")
     ticker_news = st.text_input("رمز السهم للأخبار", "MSFT").upper()
     stock_news = get_stock_news(ticker_news)
