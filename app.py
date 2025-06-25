@@ -41,11 +41,17 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
 
 with tab1:
     st.subheader("📊 أداء مؤشرات السوق")
+    # في app.py عند جلب بيانات المؤشرات:
     indices = {
-        "S&P 500": "^GSPC",
-        "Dow Jones": "^DJI",
-        "Nasdaq": "^IXIC"
-    }
+        "S&P 500": "SPX",
+        "Dow Jones": "DJI",
+        "Nasdaq": "IXIC"
+}
+
+for name, symbol in indices.items():
+    data = get_stock_data(symbol)
+    if not data.empty:
+        close_series = data['close']
     
     for name, symbol in indices.items():
         try:
