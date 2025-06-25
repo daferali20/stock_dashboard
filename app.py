@@ -55,13 +55,13 @@ with tab1:
     st.subheader("📊 أداء مؤشرات السوق")
     indices = {
         "S&P 500": "^GSPC",
-        "Dow Jones": "^DJI",
+        "Dow Jones": "^DJI", 
         "Nasdaq": "^IXIC"
     }
     
     for name, symbol in indices.items():
         try:
-            df = yf.download(symbol, start=start_date, end=end_date, progress=False)
+            df = load_index_data(symbol, start_date, end_date)  # استخدام الدالة المخبأة
             
             if not df.empty and 'Close' in df.columns:
                 # التحويل الصحيح للسلسلة الرقمية
@@ -134,7 +134,7 @@ with tab4:
     
     if ticker:
         try:
-            data = yf.download(ticker, start=start_date, end=end_date, auto_adjust=True)
+            data = load_stock_data(ticker, start_date, end_date)  # استخدام الدالة المخبأة
             
             if not data.empty:
                 data.columns = data.columns.str.lower()
