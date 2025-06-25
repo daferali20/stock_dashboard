@@ -58,7 +58,8 @@ with tab1:
             df = yf.download(symbol, start=start_date, end=end_date, progress=False)
             
             if not df.empty and 'Close' in df.columns:
-                close_series = pd.to_numeric(df['Close'], errors='coerce').dropna()
+                # التحويل الصحيح للسلسلة الرقمية
+                close_series = df['Close'].copy()
                 
                 if not close_series.empty:
                     latest_value = close_series.iloc[-1]
