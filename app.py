@@ -121,7 +121,7 @@ with tab4:
             
             if not data.empty:
                 # توحيد أسماء الأعمدة (تحويل لأحرف صغيرة)
-                data.columns = [col.lower() for col in data.columns]
+                data.columns = data.columns.str.lower()
                 
                 # عرض مؤشر التحميل
                 with st.spinner('جاري تحليل البيانات...'):
