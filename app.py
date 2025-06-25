@@ -30,16 +30,25 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
 ])
 
 with tab1:
-    st.subheader("📊 أداء مؤشرات السوق")
+st.subheader("📊 أداء مؤشرات السوق")
 indices_data = get_all_indices_data(start_date, end_date)
 
 for name, df in indices_data.items():
-    if not df.empty and 'Close' in df.columns and not df['Close'].dropna().empty:
-        latest_value = df['Close'].dropna().iloc[-1]
-        st.metric(name, value=f"{latest_value:,.2f}")
-        st.line_chart(df['Close'])
+    if not df.empty and 'Close' in df.columns:
+        close_series = df['Close'].dropna()
+
+        if not close_series.empty:
+            latest_value = close_series.iloc[-1]
+
+            if isinstance(latest_value, (float, int)):
+                st.metric(name, value=f"{latest_value:,.2f}")
+                st.line_chart(close_series)
+            else:
+                st.warning(f"⚠️ القيمة الأخيرة للمؤشر {name} غير رقمية.")
+        else:
+            st.warning(f"⚠️ بيانات الإغلاق غير متوفرة للمؤشر {name}.")
     else:
-        st.warning(f"لا توجد بيانات متاحة لـ {name}")
+        st.warning(f"⚠️ لا توجد بيانات متاحة للمؤشر {name}.")
 
 with tab2:
     st.subheader("📈 الأعلى ارتفاعًا")
