@@ -76,7 +76,14 @@ class TechnicalIndicators:
             'Middle': middle,
             'Lower': lower
         }, index=self.data.index)
-
+    # بدائل إذا لم يكن TA-Lib مثبتاً
+    def calculate_rsi(self, period=14):
+        delta = self.close.diff()
+        gain = (delta.where(delta > 0, 0)).rolling(period).mean()
+        loss = (-delta.where(delta < 0, 0)).rolling(period).mean()
+        rs = gain / loss
+        return 100 - (100 / (1 + rs))
+        
     def calculate_sma(self, period: int = 20) -> pd.Series:
         """المتوسط المتحرك البسيط"""
         sma = talib.SMA(self.close, timeperiod=period)
