@@ -6,3 +6,4 @@ plotly
 scikit-learn
 newsapi-python
 python-dotenv
+TA-Lib
