@@ -30,24 +30,44 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
 ])
 
 with tab1:
-     st.subheader("📊 أداء مؤشرات السوق")
-     indices_data = get_all_indices_data(start_date, end_date)
-     for name, df in indices_data.items():
-        if not df.empty and 'Close' in df.columns:
-            close_series = df['Close'].dropna()
+    st.subheader("📊 أداء مؤشرات السوق")
+    indices = {
+        "S&P 500": "^GSPC",
+        "Dow Jones": "^DJI",
+        "Nasdaq": "^IXIC"
+    }
     
-            if not close_series.empty:
-                latest_value = close_series.iloc[-1]
-    
-                if isinstance(latest_value, (float, int)):
-                    st.metric(name, value=f"{latest_value:,.2f}")
-                    st.line_chart(close_series)
+    for name, symbol in indices.items():
+        try:
+            # جلب البيانات مع التحقق من الصحة
+            df = yf.download(symbol, start=start_date, end=end_date, progress=False)
+            
+            if not df.empty and 'Close' in df.columns:
+                # التحقق من أن القيمة رقمية
+                close_series = pd.to_numeric(df['Close'], errors='coerce').dropna()
+                
+                if not close_series.empty:
+                    latest_value = close_series.iloc[-1]
+                    
+                    # عرض المؤشر
+                    col1, col2 = st.columns([1, 3])
+                    with col1:
+                        st.metric(
+                            label=name,
+                            value=f"{latest_value:,.2f}",
+                            delta=f"{((close_series.iloc[-1] - close_series.iloc[-2]) / close_series.iloc[-2] * 100:.2f}%" 
+                            if len(close_series) > 1 else ""
+                        )
+                    with col2:
+                        st.line_chart(close_series)
                 else:
-                    st.warning(f"⚠️ القيمة الأخيرة للمؤشر {name} غير رقمية.")
+                    st.warning(f"لا توجد بيانات صالحة للمؤشر {name}")
             else:
-                st.warning(f"⚠️ بيانات الإغلاق غير متوفرة للمؤشر {name}.")
-        else:
-            st.warning(f"⚠️ لا توجد بيانات متاحة للمؤشر {name}.")
+                st.warning(f"لا توجد بيانات متاحة للمؤشر {name}")
+                
+        except Exception as e:
+            st.error(f"خطأ في جلب بيانات {name}: {str(e)}")
+            logger.error(f"Error fetching {name} data: {str(e)}", exc_info=True)
 
 with tab2:
     st.subheader("📈 الأعلى ارتفاعًا")
