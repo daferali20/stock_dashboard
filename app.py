@@ -32,8 +32,7 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
 with tab1:
      st.subheader("📊 أداء مؤشرات السوق")
      indices_data = get_all_indices_data(start_date, end_date)
-    
-    for name, df in indices_data.items():
+     for name, df in indices_data.items():
         if not df.empty and 'Close' in df.columns:
             close_series = df['Close'].dropna()
     
