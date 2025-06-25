@@ -1,8 +1,3 @@
-import streamlit as st
-from datetime import datetime, timedelta
-import logging
-import pandas as pd
-import plotly.graph_objects as go
 import yfinance as yf
 import sys
 import os
@@ -19,6 +14,17 @@ from components.prediction import prepare_data_for_prediction, train_prediction_
 from components.watchlist import load_watchlist_from_text, load_watchlist_from_file, fetch_watchlist_data
 from components.performance import compare_with_index
 from components.analysts import get_analyst_recommendations
+
+# الدوال المساعدة مع التخزين المؤقت
+@st.cache_data
+def load_index_data(symbol, start, end):
+    """جلب بيانات المؤشر مع التخزين المؤقت"""
+    return yf.download(symbol, start=start, end=end, progress=False)
+
+@st.cache_data
+def load_stock_data(ticker, start, end):
+    """جلب بيانات السهم مع التخزين المؤقت"""
+    return yf.download(ticker, start=start, end=end, auto_adjust=True, progress=False)
 
 # إعداد الصفحة
 st.set_page_config(page_title="📊 لوحة تحليل الأسهم الأمريكية", layout="wide")
