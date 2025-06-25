@@ -25,7 +25,9 @@ def load_index_data(symbol, start, end):
 def load_stock_data(ticker, start, end):
     """جلب بيانات السهم مع التخزين المؤقت"""
     return yf.download(ticker, start=start, end=end, auto_adjust=True, progress=False)
-
+@st.cache_data(ttl=3600)  # تخزين لمدة ساعة
+def load_index_data(symbol, start, end):
+    return yf.download(symbol, start=start, end=end, progress=False)
 # إعداد الصفحة
 st.set_page_config(page_title="📊 لوحة تحليل الأسهم الأمريكية", layout="wide")
 st.title("📊 نظام تحليل الأسهم الأمريكي المتكامل")
