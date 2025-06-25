@@ -61,7 +61,7 @@ with tab1:
                     # حساب التغير المئوي
                     delta_pct = ""
                     if len(close_series) > 1:
-                        change = ((close_series.iloc[-1] - close_series.iloc[-2]) / close_series.iloc[-2] * 100
+                        change = ((close_series.iloc[-1] - close_series.iloc[-2]) / close_series.iloc[-2]) * 100
                         delta_pct = f"{change:.2f}%"
                     
                     # العرض
