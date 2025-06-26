@@ -1,9 +1,9 @@
 import streamlit as st
+import yfinance as yf
 from datetime import datetime, timedelta
 import logging
 import pandas as pd
 import plotly.graph_objects as go
-import yfinance as yf
 import sys
 import os
 
@@ -63,28 +63,41 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
 # تبويب مؤشرات السوق
 with tab1:
     st.subheader("📊 أداء مؤشرات السوق")
+
     indices = {
         "S&P 500": "^GSPC",
         "Dow Jones": "^DJI", 
         "Nasdaq": "^IXIC"
     }
-    
+
     for name, symbol in indices.items():
         try:
             df = load_index_data(symbol, start_date, end_date)
-            
+
             if not df.empty and 'Close' in df.columns:
                 close_series = df['Close'].copy()
-                
+
                 if not close_series.empty:
                     latest_value = close_series.iloc[-1]
-                    
+
+                    # التأكد من أن القيمة رقمية
+                    try:
+                        latest_value = float(latest_value)
+                    except ValueError:
+                        st.warning(f"⚠️ القيمة الأخيرة للمؤشر {name} غير رقمية: {latest_value}")
+                        continue
+
                     # حساب التغير المئوي
                     delta_pct = ""
                     if len(close_series) > 1:
-                        change = ((close_series.iloc[-1] - close_series.iloc[-2]) / close_series.iloc[-2]) * 100
-                        delta_pct = f"{change:.2f}%"
-                    
+                        prev_value = close_series.iloc[-2]
+                        try:
+                            prev_value = float(prev_value)
+                            change = ((latest_value - prev_value) / prev_value) * 100
+                            delta_pct = f"{change:.2f}%"
+                        except Exception:
+                            delta_pct = "N/A"
+
                     # عرض البيانات
                     col1, col2 = st.columns([1, 3])
                     with col1:
@@ -95,14 +108,20 @@ with tab1:
                         )
                     with col2:
                         st.line_chart(close_series)
+
                 else:
-                    st.warning(f"لا توجد بيانات صالحة للمؤشر {name}")
+                    st.warning(f"⚠️ لا توجد بيانات صالحة للمؤشر {name}")
             else:
-                st.warning(f"لا توجد بيانات متاحة للمؤشر {name}")
-                
+                st.warning(f"⚠️ لا توجد بيانات متاحة للمؤشر {name}")
+
         except Exception as e:
-            st.error(f"خطأ في جلب بيانات {name}: {str(e)}")
-            logger.error(f"Error fetching {name} data: {str(e)}", exc_info=True)
+            st.error(f"❌ خطأ في جلب بيانات {name}: {str(e)}")
+            # إذا عندك logger مفعّل
+            try:
+                logger.error(f"Error fetching {name} data: {str(e)}", exc_info=True)
+            except:
+                pass
+
 
 # تبويب الأسهم المؤثرة
 with tab2:
