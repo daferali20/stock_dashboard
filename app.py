@@ -159,7 +159,11 @@ with tab4:
             data = load_stock_data(ticker, start_date, end_date)
             
             if not data.empty:
-                data.columns = data.columns.str.lower()
+                # معالجة MultiIndex في أسماء الأعمدة أو تحويلها لصيغة صغيرة
+                if isinstance(data.columns, pd.MultiIndex):
+                    data.columns = ['_'.join(col).strip().lower() for col in data.columns.values]
+                else:
+                    data.columns = data.columns.str.lower()
                 
                 with st.spinner('جاري تحليل البيانات...'):
                     try:
@@ -197,6 +201,7 @@ with tab4:
                     except Exception as e:
                         st.error(f"❌ خطأ في تحليل البيانات: {str(e)}")
                         logger.error(f"Analysis error: {str(e)}")
+
 
                 # المقارنة مع S&P 500
                 st.subheader("📊 مقارنة مع مؤشر السوق")
