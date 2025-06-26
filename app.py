@@ -126,14 +126,7 @@ with tab1:
 # تبويب الأسهم المؤثرة
 with tab2:
     show_impact_stocks()
-    st.subheader("📈 الأعلى ارتفاعًا")
-    st.dataframe(get_top_gainers())
     
-    st.subheader("📉 الأعلى هبوطًا")
-    st.dataframe(get_top_losers())
-    
-    st.subheader("🔥 الأكثر تداولًا")
-    st.dataframe(get_most_active())
 
 # تبويب قائمة المتابعة
 with tab3:
