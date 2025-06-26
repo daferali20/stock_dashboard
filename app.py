@@ -19,7 +19,7 @@ from components.prediction import prepare_data_for_prediction, train_prediction_
 from components.watchlist import load_watchlist_from_text, load_watchlist_from_file, fetch_watchlist_data
 from components.performance import compare_with_index
 from components.analysts import get_analyst_recommendations
-
+from components.impact_stocks import show_impact_stocks
 # تحديد دالة التخزين المؤقت حسب الإصدار
 if st.__version__ >= "1.18.0":
     cache_decorator = st.cache_data
@@ -125,6 +125,7 @@ with tab1:
 
 # تبويب الأسهم المؤثرة
 with tab2:
+    show_impact_stocks()
     st.subheader("📈 الأعلى ارتفاعًا")
     st.dataframe(get_top_gainers())
     
