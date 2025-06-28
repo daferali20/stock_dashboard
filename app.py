@@ -272,8 +272,19 @@ with tab4:
                         
                 except Exception as e:
                     st.warning(f"⚠️ لا يمكن عرض المقارنة: {str(e)}")
-
-
+#----------------------99999999999--------------                    
+def fetch_analyst_recommendations(ticker):
+    if ALPHA_VANTAGE_API_KEY is None:
+        st.error("⚠️ مفتاح Alpha Vantage غير معرف، لا يمكن جلب التوصيات.")
+        return None
+# مثال استدعاء (استبدل بالرابط والباراميترات الصحيحة)
+    url = f"https://www.alphavantage.co/query?function=ANALYST_RECOMMENDATION&symbol={ticker}&apikey={ALPHA_VANTAGE_API_KEY}"
+    response = requests.get(url)
+    if response.status_code == 200:
+        return response.json()  # أو عالج البيانات حسب الصيغة
+    else:
+        st.error(f"❌ فشل جلب التوصيات: {response.status_code}")
+        return None
                 # تقييمات المحللين
                 st.subheader("🧠 توصيات المحللين")
                 try:
