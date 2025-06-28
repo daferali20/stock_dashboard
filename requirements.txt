@@ -12,3 +12,4 @@ plotly>=5.15.0
 alpha-vantage==2.3.1
 requests>=2.28.0
 lxml
+python-dotenv
