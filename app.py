@@ -154,14 +154,16 @@ with tab3:
             st.write(f"🔹 {symbol}")
             st.line_chart(df['close'])
 
-# تبويب التنبؤ
-# دالة آمنة للوصول إلى الأعمدة بدون حساسية لحالة الأحرف
-def get_column_case_insensitive(df, col_name):
-    """إرجاع عمود البيانات بدون حساسية لحالة الأحرف"""
+# دالة استخراج عمود باسم يحتوي على لاحقة رمز السهم مثل close_aapl
+def get_column_by_suffix(df, col_suffix, ticker):
+    """
+    يبحث عن عمود ينتهي بـ _<ticker> مثل 'close_aapl'
+    """
+    target = f"{col_suffix}_{ticker.lower()}"
     for col in df.columns:
-        if col.lower() == col_name.lower():
+        if col.lower() == target:
             return df[col]
-    raise ValueError(f"❌ العمود '{col_name}' غير موجود في البيانات.")
+    raise ValueError(f"❌ لم يتم العثور على العمود: {target}")
 
 # تبويب التنبؤ
 with tab4:
@@ -173,7 +175,7 @@ with tab4:
             data = load_stock_data(ticker, start_date, end_date)
             
             if not data.empty:
-                # معالجة MultiIndex أو توحيد أسماء الأعمدة إلى أحرف صغيرة
+                # معالجة MultiIndex أو توحيد الأعمدة
                 if isinstance(data.columns, pd.MultiIndex):
                     data.columns = ['_'.join(col).strip().lower() for col in data.columns.values]
                 else:
@@ -181,14 +183,15 @@ with tab4:
 
                 with st.spinner('جاري تحليل البيانات...'):
                     try:
-                        # التأكد من وجود عمود 'close'
-                        if 'close' not in data.columns:
-                            st.error("❌ البيانات لا تحتوي على عمود 'close'")
+                        # التأكد من وجود عمود 'close_<ticker>'
+                        try:
+                            close_series = get_column_by_suffix(data, 'close', ticker)
+                        except Exception as e:
+                            st.error(str(e))
                             st.text(f"📋 الأعمدة المتوفرة: {data.columns.tolist()}")
                             st.stop()
                         
                         # حساب المؤشرات الفنية
-                        close_series = get_column_case_insensitive(data, 'close')
                         data['sma_20'] = close_series.rolling(20).mean()
                         
                         delta = close_series.diff()
@@ -237,8 +240,8 @@ with tab4:
                             st.text(f"📋 الأعمدة المتوفرة: {sp500.columns.tolist()}")
                             st.stop()
 
-                        sp500_close = get_column_case_insensitive(sp500, 'close').copy()
-                        data_close = get_column_case_insensitive(data, 'close').copy()
+                        sp500_close = sp500['close'].copy()
+                        data_close = close_series.copy()
                         
                         # تطبيع البيانات للمقارنة
                         norm_data = (data_close / data_close.iloc[0] * 100)
