@@ -179,7 +179,7 @@ def show_prediction_tab():
             st.subheader("🔮 تنبؤ السعر للغد")
             current_price = close_series.iloc[-1]
             # هذا نموذج مبسط - يمكن استبداله بنموذج ML حقيقي
-            predicted_price = current_price * (1 + (data['rsi'].iloc[-1] - 50) / 1000
+            predicted_price = current_price * (1 + (data['rsi'].iloc[-1] - 50) / 1000)
             change_pct = ((predicted_price - current_price) / current_price) * 100
             
             col1, col2 = st.columns(2)
