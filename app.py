@@ -284,7 +284,7 @@ with tab4:
 def fetch_analyst_recommendations(ticker):
     if ALPHA_VANTAGE_API_KEY is None:
         st.error("⚠️ مفتاح Alpha Vantage غير معرف، لا يمكن جلب التوصيات.")
-    return None
+        return None
 
                 # تقييمات المحللين
                 st.subheader("🧠 توصيات المحللين")
