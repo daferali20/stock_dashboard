@@ -80,7 +80,7 @@ with tab1:
             df = load_index_data(symbol, start_date, end_date)
 
             if not df.empty and 'Close' in df.columns:
-                close_series = df['close'].copy()
+                close_series = df['Close'].copy()
 
                 if not close_series.empty:
                     latest_value = close_series.iloc[-1]
