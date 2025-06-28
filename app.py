@@ -13,6 +13,14 @@ load_dotenv()
 ALPHA_VANTAGE_API_KEY = os.getenv("ALPHA_VANTAGE_API_KEY")
 if not ALPHA_VANTAGE_API_KEY:
     st.warning("⚠️ مفتاح ALPHA_VANTAGE_API_KEY غير معرف في المتغيرات البيئية.")
+    # مثال استدعاء (استبدل بالرابط والباراميترات الصحيحة)
+    url = f"https://www.alphavantage.co/query?function=ANALYST_RECOMMENDATION&symbol={ticker}&apikey={ALPHA_VANTAGE_API_KEY}"
+    response = requests.get(url)
+    if response.status_code == 200:
+        return response.json()  # أو عالج البيانات حسب الصيغة
+    else:
+        st.error(f"❌ فشل جلب التوصيات: {response.status_code}")
+        return None
 # إعداد مسارات النظام
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -276,15 +284,8 @@ with tab4:
 def fetch_analyst_recommendations(ticker):
     if ALPHA_VANTAGE_API_KEY is None:
         st.error("⚠️ مفتاح Alpha Vantage غير معرف، لا يمكن جلب التوصيات.")
-        return None
-# مثال استدعاء (استبدل بالرابط والباراميترات الصحيحة)
-    url = f"https://www.alphavantage.co/query?function=ANALYST_RECOMMENDATION&symbol={ticker}&apikey={ALPHA_VANTAGE_API_KEY}"
-    response = requests.get(url)
-    if response.status_code == 200:
-        return response.json()  # أو عالج البيانات حسب الصيغة
-    else:
-        st.error(f"❌ فشل جلب التوصيات: {response.status_code}")
-        return None
+    return None
+
                 # تقييمات المحللين
                 st.subheader("🧠 توصيات المحللين")
                 try:
