@@ -79,7 +79,7 @@ with tab1:
         try:
             df = load_index_data(symbol, start_date, end_date)
 
-            if not df.empty and 'close' in df.columns:
+            if not df.empty and 'Close' in df.columns:
                 close_series = df['close'].copy()
 
                 if not close_series.empty:
