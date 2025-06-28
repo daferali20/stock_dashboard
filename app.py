@@ -6,7 +6,10 @@ import pandas as pd
 import plotly.graph_objects as go
 import sys
 import os
-
+from dotenv import load_dotenv
+# تحميل المتغيرات البيئية
+load_dotenv()
+ALPHA_VANTAGE_API_KEY = os.getenv("ALPHA_VANTAGE_API_KEY")
 # إعداد مسارات النظام
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -21,9 +24,6 @@ from components.performance import compare_with_index
 from components.analysts import get_analyst_recommendations
 from components.impact_stocks import show_impact_stocks
 # تحديد دالة التخزين المؤقت حسب الإصدار
-from dotenv import load_dotenv
-load_dotenv()
-ALPHA_VANTAGE_API_KEY = os.getenv("ALPHA_VANTAGE_API_KEY")
 
 if st.__version__ >= "1.18.0":
     cache_decorator = st.cache_data
