@@ -79,8 +79,8 @@ with tab1:
         try:
             df = load_index_data(symbol, start_date, end_date)
 
-            if not df.empty and 'Close' in df.columns:
-                close_series = df['Close'].copy()
+            if not df.empty and 'close' in df.columns:
+                close_series = df['close'].copy()
 
                 if not close_series.empty:
                     latest_value = close_series.iloc[-1]
@@ -152,7 +152,7 @@ with tab3:
         data = fetch_watchlist_data(symbols, start_date, end_date)
         for symbol, df in data.items():
             st.write(f"🔹 {symbol}")
-            st.line_chart(df['Close'])
+            st.line_chart(df['close'])
 
 # تبويب التنبؤ
 with tab4:
@@ -217,8 +217,8 @@ with tab4:
                 st.subheader("📊 مقارنة مع مؤشر السوق")
                 try:
                     sp500 = load_index_data("^GSPC", start_date, end_date)
-                    if not sp500.empty and 'Close' in sp500.columns:
-                        sp500_close = sp500['Close'].copy()
+                    if not sp500.empty and 'close' in sp500.columns:
+                        sp500_close = sp500['close'].copy()
                         data_close = data['close'].copy()
                         
                         # تطبيع البيانات للمقارنة
