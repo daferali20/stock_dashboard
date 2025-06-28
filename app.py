@@ -8,8 +8,11 @@ import sys
 from dotenv import load_dotenv
 import os
 # تحميل المتغيرات البيئية
+# تحميل متغيرات البيئة
 load_dotenv()
 ALPHA_VANTAGE_API_KEY = os.getenv("ALPHA_VANTAGE_API_KEY")
+if not ALPHA_VANTAGE_API_KEY:
+    st.warning("⚠️ مفتاح ALPHA_VANTAGE_API_KEY غير معرف في المتغيرات البيئية.")
 # إعداد مسارات النظام
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
