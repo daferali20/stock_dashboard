@@ -29,16 +29,17 @@ if st.__version__ >= "1.18.0":
     cache_decorator = st.cache_data
 else:
     cache_decorator = st.cache(allow_output_mutation=True, suppress_st_warning=True)
-
+#-------------------------------------
 @cache_decorator(ttl=3600)
 def load_index_data(symbol, start, end):
     """جلب بيانات المؤشر مع التخزين المؤقت لمدة ساعة"""
-    return yf.download(symbol, start=start, end=end, progress=False)
+    return yf.download(symbol, start=start, end=end, auto_adjust=False, progress=False)
 
 @cache_decorator(ttl=3600)
 def load_stock_data(ticker, start, end):
     """جلب بيانات السهم مع التخزين المؤقت لمدة ساعة"""
     return yf.download(ticker, start=start, end=end, auto_adjust=True, progress=False)
+#-------------------------------------
 
 # إعداد الصفحة
 st.set_page_config(page_title="📊 لوحة تحليل الأسهم الأمريكية", layout="wide")
