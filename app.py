@@ -179,13 +179,13 @@ with tab4:
                         loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
                         rs = gain / loss
                         data['rsi'] = 100 - (100 / (1 + rs))
-    if 'close' not in data.columns:
-        st.error("❌ البيانات لا تحتوي على عمود 'close'")
-        st.stop()
+   
                         # التنبؤ
                         features, target = prepare_data_for_prediction(data)
                         model, mse = train_prediction_model(features, target)
-                        
+                        if 'close' not in data.columns:
+                            st.error("❌ البيانات لا تحتوي على عمود 'close'")
+                            st.stop()
                         if model:
                             st.success(f"تم تدريب النموذج (دقة التنبؤ: {mse:.4f})")
                             last_data = data.iloc[-1]
