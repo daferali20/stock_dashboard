@@ -172,13 +172,16 @@ with tab4:
                 with st.spinner('جاري تحليل البيانات...'):
                     try:
                         # حساب المؤشرات الفنية
+                        
                         data['sma_20'] = data['close'].rolling(20).mean()
                         delta = data['close'].diff()
                         gain = (delta.where(delta > 0, 0)).rolling(14).mean()
                         loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
                         rs = gain / loss
                         data['rsi'] = 100 - (100 / (1 + rs))
-
+    if 'close' not in data.columns:
+        st.error("❌ البيانات لا تحتوي على عمود 'close'")
+        st.stop()
                         # التنبؤ
                         features, target = prepare_data_for_prediction(data)
                         model, mse = train_prediction_model(features, target)
