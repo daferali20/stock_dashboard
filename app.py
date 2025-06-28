@@ -17,7 +17,7 @@ from sklearn.model_selection import train_test_split
 load_dotenv()
 
 # إعداد المسارات
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # إعداد التسجيل
 logging.basicConfig(
