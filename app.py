@@ -155,6 +155,15 @@ with tab3:
             st.line_chart(df['close'])
 
 # تبويب التنبؤ
+# دالة آمنة للوصول إلى الأعمدة بدون حساسية لحالة الأحرف
+def get_column_case_insensitive(df, col_name):
+    """إرجاع عمود البيانات بدون حساسية لحالة الأحرف"""
+    for col in df.columns:
+        if col.lower() == col_name.lower():
+            return df[col]
+    raise ValueError(f"❌ العمود '{col_name}' غير موجود في البيانات.")
+
+# تبويب التنبؤ
 with tab4:
     st.subheader("🔮 التنبؤ بسهم")
     ticker = st.text_input("رمز السهم", "AAPL").upper()
@@ -164,27 +173,30 @@ with tab4:
             data = load_stock_data(ticker, start_date, end_date)
             
             if not data.empty:
-                # معالجة MultiIndex في أسماء الأعمدة أو تحويلها لصيغة صغيرة
+                # معالجة MultiIndex أو توحيد أسماء الأعمدة إلى أحرف صغيرة
                 if isinstance(data.columns, pd.MultiIndex):
                     data.columns = ['_'.join(col).strip().lower() for col in data.columns.values]
                 else:
                     data.columns = data.columns.str.lower()
-                
+
                 with st.spinner('جاري تحليل البيانات...'):
                     try:
-                        # حساب المؤشرات الفنية
+                        # التأكد من وجود عمود 'close'
+                        if 'close' not in data.columns:
+                            st.error("❌ البيانات لا تحتوي على عمود 'close'")
+                            st.text(f"📋 الأعمدة المتوفرة: {data.columns.tolist()}")
+                            st.stop()
                         
-                        data['sma_20'] = data['close'].rolling(20).mean()
-                        delta = data['close'].diff()
+                        # حساب المؤشرات الفنية
+                        close_series = get_column_case_insensitive(data, 'close')
+                        data['sma_20'] = close_series.rolling(20).mean()
+                        
+                        delta = close_series.diff()
                         gain = (delta.where(delta > 0, 0)).rolling(14).mean()
                         loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
                         rs = gain / loss
                         data['rsi'] = 100 - (100 / (1 + rs))
-                #--------------------------
-                        if 'close' not in data.columns:
-                            st.error("❌ البيانات لا تحتوي على عمود 'close'")
-                            st.stop()
-                 #-------------------------------
+
                         # التنبؤ
                         features, target = prepare_data_for_prediction(data)
                         model, mse = train_prediction_model(features, target)
@@ -193,33 +205,40 @@ with tab4:
                             st.success(f"تم تدريب النموذج (دقة التنبؤ: {mse:.4f})")
                             last_data = data.iloc[-1]
                             pred_price = predict_next_day(model, last_data)
-                            current_price = last_data['close']
+                            current_price = float(close_series.iloc[-1])
                             change_pct = ((pred_price - current_price) / current_price) * 100
                             
                             col1, col2 = st.columns(2)
                             col1.metric("السعر الحالي", f"{current_price:.2f}")
                             col2.metric("التنبؤ للغد", f"{pred_price:.2f}", 
-                                      delta=f"{change_pct:.2f}%",
-                                      delta_color="inverse" if change_pct < 0 else "normal")
+                                        delta=f"{change_pct:.2f}%",
+                                        delta_color="inverse" if change_pct < 0 else "normal")
                             
                             st.info("""
                             **تفسير النتائج:**
                             - إذا كانت النسبة موجبة: تشير إلى صعود متوقع في السعر
                             - إذا كانت النسبة سالبة: تشير إلى هبوط متوقع في السعر
                             """)
-
+                    
                     except Exception as e:
                         st.error(f"❌ خطأ في تحليل البيانات: {str(e)}")
-                        logger.error(f"Analysis error: {str(e)}")
-
+                        st.text(f"📋 الأعمدة المتوفرة: {data.columns.tolist()}")
+                        logger.error(f"Analysis error: {str(e)} | Columns: {data.columns.tolist()}")
 
                 # المقارنة مع S&P 500
                 st.subheader("📊 مقارنة مع مؤشر السوق")
                 try:
                     sp500 = load_index_data("^GSPC", start_date, end_date)
-                    if not sp500.empty and 'close' in sp500.columns:
-                        sp500_close = sp500['close'].copy()
-                        data_close = data['close'].copy()
+                    if not sp500.empty:
+                        sp500.columns = sp500.columns.str.lower()
+
+                        if 'close' not in sp500.columns:
+                            st.warning("⚠️ مؤشر S&P 500 لا يحتوي على عمود 'close'")
+                            st.text(f"📋 الأعمدة المتوفرة: {sp500.columns.tolist()}")
+                            st.stop()
+
+                        sp500_close = get_column_case_insensitive(sp500, 'close').copy()
+                        data_close = get_column_case_insensitive(data, 'close').copy()
                         
                         # تطبيع البيانات للمقارنة
                         norm_data = (data_close / data_close.iloc[0] * 100)
@@ -247,6 +266,7 @@ with tab4:
                         
                 except Exception as e:
                     st.warning(f"⚠️ لا يمكن عرض المقارنة: {str(e)}")
+
 
                 # تقييمات المحللين
                 st.subheader("🧠 توصيات المحللين")
